@@ -1,0 +1,8 @@
+{
+  "appId": "com.tradebrain.pro",
+  "appName": "TradeBrain Pro",
+  "webDir": "www",
+  "backgroundColor": "#0b0f17",
+  "server": { "androidScheme": "https" },
+  "plugins": { "CapacitorHttp": { "enabled": true } }
+}

@@ -90,8 +90,7 @@ body:not([data-view="analyze"]) .layout{display:block!important}
 .hrow .small{width:100%;margin:0}
 </style>
 <style>#stbar{display:flex;gap:6px;overflow-x:auto;padding:6px 12px}#stbar button{flex:none;padding:6px 12px;border-radius:14px;border:1px solid #243044;background:#151c28;color:#cbd5e1;font:600 12px system-ui}#stbar button.on{background:#2563eb;color:#fff}#stcap{padding:0 12px 6px}
-body[data-view="bot"] .v:not(.v-bot){display:none!important}#nav button{font-size:10px}
-#bx input,#bx select,#bx button{width:100%;box-sizing:border-box;margin:3px 0;padding:10px;border-radius:8px;border:1px solid #243044;background:#0b0f17;color:#e2e8f0;font:inherit}#bx button{background:#2563eb;border:0;font-weight:700}#bx button.gb{background:#15803d}#bx button.rb{background:#b91c1c}#bx pre{white-space:pre-wrap;font-size:12px;margin:0;max-height:260px;overflow:auto}#bxs{background:linear-gradient(135deg,#151c28,#1b1640)}</style></head>
+#bxcard input,#bxcard select,#bxcard button{width:100%;box-sizing:border-box;margin:3px 0;padding:10px;border-radius:8px;border:1px solid #243044;background:#0b0f17;color:#e2e8f0;font:inherit}#bxcard button{background:#2563eb;border:0;font-weight:700}#bxcard button.r{background:#b91c1c}#bxcard button.g{background:#15803d}#bxcard h3{margin:0 0 6px;font-size:13px;color:#94a3b8}#bxcard pre{white-space:pre-wrap;font-size:12px;margin:0;max-height:240px;overflow:auto}#bxcard .s{color:#94a3b8;font-size:12px}</style></head>
 <body>
 <header>
   <div class="brand"><span class="dot" id="dot"></span><b>TradeBrain</b><span class="mk" id="mk"></span><span class="px" id="px">--</span><span class="note" id="note"></span><span class="note" id="sess" style="color:#93c5fd"></span></div>
@@ -153,8 +152,20 @@ body[data-view="bot"] .v:not(.v-bot){display:none!important}#nav button{font-siz
 </div>
 <div class="card small">Lines: green = support, red = resistance, dashed = supply/demand zones, purple dotted = Fibonacci, thick line = trendline, arrows = liquidity sweeps, blue/orange = EMA 50/200, thin lines = last week's swing highs and lows that run until price breaks them, HH/HL/LH/LL = market-structure labels, blue/red/green lines = entry, stop loss and targets. This is an analysis tool with an untested scoring system (backtester comes next). It is not financial advice and cannot predict the market.</div>
 
-<div id="bx" class="v v-bot"><div class="card" id="bxs"></div><div class="card"><div class="sub" style="margin-top:0">Alerts the bot is watching</div><div id="bxa"></div></div><div class="card"><div class="sub" style="margin-top:0">Open bot trades</div><div id="bxp"></div></div><div class="card" id="bxj"></div><div class="card"><div class="sub" style="margin-top:0">Results</div><div id="bxr"></div></div><div class="card" id="bxc"></div><div class="card"><div class="sub" style="margin-top:0">Log</div><pre id="bxl"></pre></div></div>
-<nav id="nav"><button data-v="signals"><i>📡</i>Signals</button><button data-v="analyze"><i>📈</i>Analyze</button><button data-v="news"><i>📰</i>News</button><button data-v="history"><i>🕘</i>History</button><button data-v="bot"><i>🤖</i>Bot</button><button data-v="settings"><i>⚙️</i>Settings</button></nav>
+<div id="bxcard" class="v v-settings">
+<div class="card"><h3>Connection</h3>
+<select id="bx_mode"><option value="demo">DEMO (Binance demo futures, fake money)</option><option value="live">LIVE (real money)</option></select>
+<input id="bx_key" placeholder="API key" autocomplete="off"><input id="bx_sec" type="password" placeholder="API secret" autocomplete="off">
+<input id="bx_phrase" placeholder="LIVE only: type REAL MONEY to arm" style="display:none">
+<div id="bx_set"></div><label class="s"><input id="bx_auto" type="checkbox" style="width:auto"> Auto-trade (off = signals only)</label>
+<button class="g" id="bx_go">Save and start</button><button id="bx_stop">Stop</button><button class="r" id="bx_kill">KILL: close everything</button>
+<div class="s">Create the key with trading on and withdrawals off. Keep the app open: Android pauses it in the background.</div></div>
+<div class="card"><h3>Account</h3><pre id="bx_acc">Not started</pre></div>
+<div class="card"><h3>Signals (15m close)</h3><pre id="bx_sig"></pre></div>
+<div class="card"><h3>Backtest (last ~60 days, fees included)</h3><button id="bx_btb">Run backtest</button><pre id="bx_bt"></pre></div>
+<div class="card"><h3>Log</h3><pre id="bx_log"></pre></div>
+</div>
+<nav id="nav"><button data-v="signals"><i>📡</i>Signals</button><button data-v="analyze"><i>📈</i>Analyze</button><button data-v="news"><i>📰</i>News</button><button data-v="history"><i>🕘</i>History</button><button data-v="settings"><i>⚙️</i>Settings</button></nav>
 <script src="lightweight-charts.js"></script>
 <script>
 const HOSTS=["https://data-api.binance.vision","https://api.binance.com"];
@@ -166,43 +177,13 @@ const MARKETS=[
  {l:"ETH",n:"Ethereum",g:"Crypto",src:"bn",sym:"ETHUSDT"},
  {l:"SOL",n:"Solana",g:"Crypto",src:"bn",sym:"SOLUSDT"},
  {l:"XAUUSD",n:"Gold (XAU/USD)",g:"Metals",src:"bn",sym:"PAXGUSDT"},
- {l:"XAGUSD",n:"Silver (XAG/USD)",g:"Metals",src:"bn",sym:"XAGUSDT",fut:1,c:[["XAGUSDT",1]]},
- {l:"EURUSD",n:"EUR/USD",g:"Forex",src:"bn",sym:"EURUSDT",c:[["EURUSDT",0],["EURUSDUSDT",1]]},
- {l:"GBPUSD",n:"GBP/USD",g:"Forex",src:"bn",sym:"GBPUSDT",c:[["GBPUSDT",0],["GBPUSDUSDT",1]]},
- {l:"USDJPY",n:"USD/JPY",g:"Forex",src:"bn",sym:"USDTJPY",c:[["USDTJPY",0],["USDJPYUSDT",1]]},
- {l:"US100",n:"Nasdaq 100",g:"Indices",src:"bn",sym:"QQQUSDT",fut:1,c:[["QQQUSDT",1],["NDXUSDT",1],["US100USDT",1],["NAS100USDT",1]]}
+ {l:"XAGUSD",n:"Silver (XAG/USD)",g:"Metals",src:"yf",sym:"XAGUSD=X",alt:"SI=F"},
+ {l:"EURUSD",n:"EUR/USD",g:"Forex",src:"yf",sym:"EURUSD=X"},
+ {l:"GBPUSD",n:"GBP/USD",g:"Forex",src:"yf",sym:"GBPUSD=X"},
+ {l:"USDJPY",n:"USD/JPY",g:"Forex",src:"yf",sym:"JPY=X"},
+ {l:"US100",n:"Nasdaq 100",g:"Indices",src:"yf",sym:"NQ=F"}
 ];
 let mk=MARKETS[0],poll=null;
-
-/* ---------- ALL prices come from Binance: find each market's Binance symbol (spot first, then futures) ---------- */
-const FAPI="https://fapi.binance.com",FWSS="wss://fstream.binance.com";
-async function bnProbe(sym,fut){
-  const urls=fut?[`${FAPI}/fapi/v1/klines?symbol=${sym}&interval=1h&limit=5`]:HOSTS.map(h=>`${h}/api/v3/klines?symbol=${sym}&interval=1h&limit=5`);
-  for(const u of urls){
-    try{const r=await fetch(u);if(!r.ok)continue;const d=await r.json();
-      if(Array.isArray(d)&&d.length>=3&&Date.now()-d[d.length-1][0]<7*864e5)return true;}catch(e){}
-  }
-  return false;
-}
-async function resolveMarkets(){
-  let saved={};try{saved=JSON.parse(localStorage.getItem("tb_res")||"{}")||{};}catch(e){}
-  const fresh=saved.t&&Date.now()-saved.t<864e5?saved.m:{};
-  await Promise.all(MARKETS.filter(m=>m.c).map(async m=>{
-    const x=fresh[m.l];
-    if(x&&x.sym){m.sym=x.sym;m.fut=x.fut;return;}
-    for(const [sym,fut] of m.c){if(await bnProbe(sym,fut)){m.sym=sym;m.fut=fut;return;}}
-    m.off=true;
-  }));
-  try{const o={};MARKETS.filter(m=>m.c&&!m.off).forEach(m=>o[m.l]={sym:m.sym,fut:m.fut?1:0});localStorage.setItem("tb_res",JSON.stringify({t:Date.now(),m:o}));}catch(e){}
-  const us=MARKETS.find(m=>m.l==="US100");if(us&&!us.off&&/^QQQ/.test(us.sym))us.n="Nasdaq 100 (QQQ ETF)";
-  const miss=MARKETS.filter(m=>m.off).map(m=>m.l);
-  if(miss.length){
-    try{[...document.getElementById("mkts").children].forEach((b,i)=>{if(MARKETS[i]&&MARKETS[i].off)b.style.display="none";});
-      const t=document.getElementById("toast");t.textContent="Not listed on Binance, hidden: "+miss.join(", ");t.style.display="block";}catch(e){}
-  }
-  return miss;
-}
-const RES=resolveMarkets();
 
 const chart=LightweightCharts.createChart(document.getElementById("chart"),{
   autoSize:true,
@@ -261,14 +242,6 @@ async function getKraw(interval,limit,m=mk){
   return d;
 }
 async function getKbn(interval,limit,m=mk){
-  await RES;
-  if(m.off)throw new Error("not on Binance");
-  if(m.fut){
-    const r=await fetch(`${FAPI}/fapi/v1/klines?symbol=${m.sym}&interval=${interval}&limit=${Math.min(limit,1500)}`);
-    if(!r.ok)throw new Error("no data");
-    const d=await r.json();
-    return d.map(k=>({time:Math.floor(k[0]/1000),open:+k[1],high:+k[2],low:+k[3],close:+k[4]}));
-  }
   for(const h of HOSTS){
     try{
       const r=await fetch(`${h}/api/v3/klines?symbol=${m.sym}&interval=${interval}&limit=${limit}`);
@@ -596,7 +569,7 @@ async function load(){
     await loadHTF();
     analyse();connect();
   }catch(e){
-    $("verdict").innerHTML="Could not load prices. Check your internet. This market may not be listed on Binance.";
+    $("verdict").innerHTML="Could not load prices. Check your internet, and for gold/forex make sure server.py is running.";
   }
 }
 function connect(){
@@ -613,7 +586,7 @@ function connect(){
     return;
   }
   $("dot").className="dot";
-  ws=new WebSocket(`${mk.fut?FWSS:WSS[wsIdx]}/ws/${mk.sym.toLowerCase()}@kline_${tf}`);
+  ws=new WebSocket(`${WSS[wsIdx]}/ws/${mk.sym.toLowerCase()}@kline_${tf}`);
   ws.onopen=()=>{$("dot").className="dot on";};
   ws.onmessage=ev=>{
     if(replaying)return;
@@ -781,7 +754,7 @@ function btHTML(m,r){
 function btBusy(on){$("btgo").disabled=on;$("btall").disabled=on;}
 $("btgo").onclick=async()=>{
   btBusy(true);$("bt").textContent="Testing "+mk.l+" on "+tf+"...";
-  try{$("bt").innerHTML=btHTML(mk,await btRun(mk,tf));}catch(e){$("bt").textContent="Backtest failed. Check your connection. This market may not be listed on Binance.";}
+  try{$("bt").innerHTML=btHTML(mk,await btRun(mk,tf));}catch(e){$("bt").textContent="Backtest failed. Check your connection (and server.py for gold/forex).";}
   btBusy(false);
 };
 $("btall").onclick=async()=>{
@@ -961,14 +934,12 @@ function boxes(c,a,zs){
 const YMAPL={"1h":["60m","720d",1],"4h":["60m","720d",4],"1d":["1d","10y",1]};
 const LAB_BARS={"1h":5000,"4h":3000};
 async function bnLong(m,T,want){
-  await RES;
-  if(m.off)throw new Error("not on Binance");
   let all=[],end=null;
   while(all.length<want){
     let d=null;
-    for(const h of (m.fut?[FAPI]:HOSTS)){
+    for(const h of HOSTS){
       try{
-        const r=await fetch(`${h}${m.fut?"/fapi/v1/klines":"/api/v3/klines"}?symbol=${m.sym}&interval=${T}&limit=1000${end?"&endTime="+end:""}`);
+        const r=await fetch(`${h}/api/v3/klines?symbol=${m.sym}&interval=${T}&limit=1000${end?"&endTime="+end:""}`);
         if(r.ok){d=await r.json();break;}
       }catch(e){}
     }
@@ -1372,145 +1343,84 @@ const A0=analyse;analyse=function(){A0.apply(this,arguments);try{draw()}catch(e)
 })();
 </script>
 <script>(function(){
-const $=id=>document.getElementById(id),SYM={BTC:'BTCUSDT',ETH:'ETHUSDT',SOL:'SOLUSDT',XAUUSD:'XAUUSDT',XAGUSD:'XAGUSDT'};
-RES.then(()=>MARKETS.forEach(m=>{if(m.fut&&m.sym&&!m.off)SYM[m.l]=m.sym}));
-const D={mode:'demo',key:'',sec:'',auto:1,sOn:1,aOn:1,riskS:0.2,tpS:1,beS:0.6,tmS:45,riskA:0.5,maxOpen:3,lev:5,dayLoss:2,minScore:4,maxFee:30,jOn:1,jUsd:200,jDip:0.06,jTp:0.15,jSl:0.5,jFlips:6,jWin:45,jHold:15,jCool:10,jMax:3,jSp:0.4,open:{},jr:[],cool:{},pauseS:0,day:'',d0:0};
-const cfg=Object.assign({},D,(()=>{try{return JSON.parse(localStorage.bxc2||'{}')}catch(e){return{}}})());
-const save=()=>{try{localStorage.bxc2=JSON.stringify(cfg)}catch(e){}};
-const F={},lv={},logs=[],PX={};let off=0,run=0,busy=0,halt='',eq=0,rows={},last=0;
-const BG=()=>window.Capacitor&&((Capacitor.Plugins&&Capacitor.Plugins.BackgroundMode)||(Capacitor.registerPlugin&&Capacitor.registerPlugin('BackgroundMode')));
-async function bgOn(){const B=BG();if(!B){log('Background mode is not in this build: keep the app open');return}
- try{await B.requestNotificationsPermission().catch(()=>{});await B.enable({title:'TradeBrain bot running',text:'Scanning markets and managing trades',disableWebViewOptimization:true});await B.disableWebViewOptimizations().catch(()=>{});
-  const o=await B.checkBatteryOptimizations().catch(()=>null);if(o&&o.enabled)await B.requestDisableBatteryOptimizations().catch(()=>{});log('Background mode ON: the bot keeps running when you leave the app')}
- catch(e){log('Background mode unavailable: '+e.message+'. Keep the app open.')}}
-const bgOff=()=>{const B=BG();if(B)B.disable().catch(()=>{})};
+const SYMS=['BTCUSDT','ETHUSDT','SOLUSDT','XAUUSDT','XAGUSDT'],FEE=0.001,MAXFEE=0.25;
+const cfg=Object.assign({mode:'demo',key:'',sec:'',riskA:0.5,riskS:0.25,lev:5,maxOpen:3,dayLoss:2,auto:true,open:{}},(()=>{try{return JSON.parse(localStorage.bxc||'{}')}catch(e){return{}}})());
+const save=()=>{try{localStorage.bxc=JSON.stringify(cfg)}catch(e){}};
 const BASE=()=>cfg.mode==='live'?'https://fapi.binance.com':'https://demo-fapi.binance.com';
-const log=t=>{logs.unshift(new Date().toLocaleTimeString()+' '+t);logs.length=Math.min(logs.length,60);if($('bxl'))$('bxl').textContent=logs.join('\n')};
+const F={},ui={},seen={},lev={},logs=[];let off=0,run=0,busy=0,halt=0,$=id=>typeof document!=='undefined'?document.getElementById(id):null;
+const log=t=>{logs.unshift(new Date().toLocaleTimeString()+' '+t);logs.length=Math.min(logs.length,80);if($('bx_log'))$('bx_log').textContent=logs.join('\n')};
 const hex=b=>[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');
 async function sign(q){const e=new TextEncoder(),k=await crypto.subtle.importKey('raw',e.encode(cfg.sec),{name:'HMAC',hash:'SHA-256'},false,['sign']);return hex(await crypto.subtle.sign('HMAC',k,e.encode(q)))}
-async function api0(m,p,q,sg){q=Object.assign({},q);if(sg){q.timestamp=Date.now()+off;q.recvWindow=10000}let s=new URLSearchParams(q).toString();if(sg)s+='&signature='+await sign(s);
- const r=await fetch(BASE()+p+'?'+s,{method:m,headers:sg?{'X-MBX-APIKEY':cfg.key}:{}}),j=await r.json();if(!r.ok)throw new Error(j.msg||r.status);return j}
-async function api(m,p,q,sg){try{return await api0(m,p,q,sg)}catch(e){if(sg&&/recvWindow/i.test(e.message)){const t=await api0('GET','/fapi/v1/time');off=t.serverTime-Date.now();return api0(m,p,q,sg)}throw e}}
-const agr=(s,l,msg)=>{if(/agreement/i.test(msg)){cfg.cool[s]=Date.now()+6*3600000;save();log(l+': sign the TradFi-Perps agreement in your Binance account. Skipping it for 6 hours.')}};
-const dec=t=>(String(t).split('.')[1]||'').length,fx=(v,t)=>(+v).toFixed(dec(t)),rp=(v,s)=>fx(Math.round(v/F[s].tick)*F[s].tick,F[s].tick),fl=(v,t)=>Math.floor(v/t+1e-9)*t;
-const pf=v=>(+v).toFixed(v>100?2:v>1?3:5),sg=v=>(v>0?'+':'')+v.toFixed(2);
+async function api(m,p,q,signed){q=Object.assign({},q);if(signed){q.timestamp=Date.now()+off;q.recvWindow=10000}let s=new URLSearchParams(q).toString();if(signed)s+='&signature='+await sign(s);
+ const r=await fetch(BASE()+p+'?'+s,{method:m,headers:signed?{'X-MBX-APIKEY':cfg.key}:{}}),j=await r.json();if(!r.ok)throw new Error(j.msg||r.status);return j}
+async function kl(s,i,n,base){let o=[],end;while(o.length<n){const r=await(await fetch((base||BASE())+'/fapi/v1/klines?symbol='+s+'&interval='+i+'&limit='+Math.min(1500,n-o.length)+(end?'&endTime='+end:''))).json();if(!Array.isArray(r)||!r.length)throw new Error(r.msg||'no data '+s);o=r.concat(o);end=r[0][0]-1}
+ return o.map(k=>({t:k[0],o:+k[1],h:+k[2],l:+k[3],c:+k[4],ct:k[6]})).filter(k=>k.ct<Date.now()+off)}
+// ---------- indicators ----------
+const ema=(a,n)=>{const k=2/(n+1);let e=a[0];return a.map(v=>e=v*k+e*(1-k))};
+const atr=c=>ema(c.map((x,i)=>i?Math.max(x.h-x.l,Math.abs(x.h-c[i-1].c),Math.abs(x.l-c[i-1].c)):x.h-x.l),14);
+const er=(c,n=10)=>{const a=c.slice(-n-1);let s=0;for(let i=1;i<=n;i++)s+=Math.abs(a[i].c-a[i-1].c);return s?Math.abs(a[n].c-a[0].c)/s:0};
+const trend=z=>{const q=z.map(x=>x.c),n=q.length-1,f=ema(q,50)[n],s=ema(q,200)[n];return q[n]>f&&f>s?1:q[n]<f&&f<s?-1:0};
+// ---------- signals: a = 15m, b = 1h, c = 4h (closed candles, oldest first) ----------
+function sig(a,b,c){
+ if(a.length<210||b.length<210||c.length<210)return null;
+ const q=a.map(x=>x.c),p=a.length-1,x=a[p],y=a[p-1],E=n=>ema(q,n),e10=E(10),e20=E(20),e50=E(50),e200=E(200),AT=atr(a)[p],ER=er(a),
+  m12=E(12),m26=E(26),ml=m12.map((v,i)=>v-m26[i]),hist=ml[p]-ema(ml,9)[p],h1=trend(b),h4=trend(c),
+  hh=Math.max(...a.slice(p-10,p).map(v=>v.h)),ll=Math.min(...a.slice(p-10,p).map(v=>v.l));
+ // the four best-testing strategies vote: Rayner Teo breakout, Qullamaggie momentum, FXAlexG 200 EMA, Adam Khoo pullback
+ const V=d=>(d>0?[x.c>e200[p]&&x.c>hh,x.c>e10[p]&&e10[p]>e20[p]&&x.c>y.h,x.c>e200[p]&&x.l<=ll&&x.c>x.o,e20[p]>e50[p]&&e50[p]>e200[p]&&x.c<=e20[p]&&hist>0]
+  :[x.c<e200[p]&&x.c<ll,x.c<e10[p]&&e10[p]<e20[p]&&x.c<y.l,x.c<e200[p]&&x.h>=hh&&x.c<x.o,e20[p]<e50[p]&&e50[p]<e200[p]&&x.c>=e20[p]&&hist<0]).filter(Boolean).length;
+ const pb=d=>d>0?(y.l<=e20[p-1]||a[p-2].l<=e20[p-2])&&x.c>e20[p]&&x.c>y.h:(y.h>=e20[p-1]||a[p-2].h>=e20[p-2])&&x.c<e20[p]&&x.c<y.l,
+  str=d=>(d>0?x.c-x.l:x.h-x.c)/((x.h-x.l)||1)>0.6;
+ const mk=(kind,d,sd,rr)=>{const risk=sd*AT,fee=FEE*x.c/risk;if(!(risk>0)||fee>MAXFEE)return null;return{d,kind,entry:x.c,sl:x.c-d*risk,tp:x.c+d*rr*risk,risk,rr,fee}};
+ for(const d of[1,-1]){
+  if(h1==d&&h4==d&&ER>=0.25&&V(d)>=2){const z=mk('A',d,1.5,2);if(z)return z}                       // A+: 1h and 4h trend agree, 2+ strategies agree, 2R target
+  if(h1==d&&(e20[p]-e50[p])*d>0&&ER>=0.2&&pb(d)&&str(d)){const z=mk('S',d,1.2,1);if(z)return z}}  // scalp: pullback to the 15m 20 EMA inside the 1h trend, 1R target, skipped when fees exceed 0.25R
+ return null}
+function sim(c,i,s){const mx=i+(s.kind=='S'?8:24);for(let j=i+1;j<c.length&&j<=mx;j++){const k=c[j],sl=s.d>0?k.l<=s.sl:k.h>=s.sl,tp=s.d>0?k.h>=s.tp:k.l<=s.tp;if(sl)return[-1-s.fee,j-i];if(tp)return[s.rr-s.fee,j-i]}
+ const n=Math.min(c.length-1,mx);return[s.d*(c[n].c-s.entry)/s.risk-s.fee,n-i]}
+const st=a=>{const n=a.length,s=a.reduce((p,q)=>p+q,0);return n+' trades, '+(n?Math.round(100*a.filter(x=>x>0).length/n):0)+'% win, avg '+(n?(s/n).toFixed(3):0)+'R, total '+s.toFixed(1)+'R'};
+async function bt(){const base='https://fapi.binance.com',T={A:[],S:[]},o=[];$('bx_bt').textContent='Running...';
+ for(const s of SYMS){try{const[a,b,c]=await Promise.all([kl(s,'15m',6000,base),kl(s,'1h',2000,base),kl(s,'4h',600,base)]),R={A:[],S:[]};let j1=0,j4=0;
+  for(let i=300;i<a.length-1;i++){const t=a[i].ct;while(j1+1<b.length&&b[j1+1].ct<=t)j1++;while(j4+1<c.length&&c[j4+1].ct<=t)j4++;
+   const z=sig(a.slice(i-299,i+1),b.slice(Math.max(0,j1-299),j1+1),c.slice(Math.max(0,j4-299),j4+1));if(!z)continue;const[r,n]=sim(a,i,z);R[z.kind].push(r);T[z.kind].push(r);i+=n}
+  o.push(s+'  A+: '+st(R.A)+'\n         Scalp: '+st(R.S))}catch(e){o.push(s+': '+e.message)}
+  $('bx_bt').textContent=o.join('\n')+'\n...';await new Promise(r=>setTimeout(r))}
+ $('bx_bt').textContent=o.join('\n')+'\n\nALL A+: '+st(T.A)+'\nALL Scalp: '+st(T.S)+'\nPast results do not predict future ones. Slippage is not included.'}
+// ---------- trading ----------
+const dec=t=>(String(t).split('.')[1]||'').length,fx=(v,t)=>v.toFixed(dec(t)),rp=(v,s)=>fx(Math.round(v/F[s].tick)*F[s].tick,F[s].tick);
 async function info(){const j=await api('GET','/fapi/v1/exchangeInfo');for(const s of j.symbols){const f=n=>s.filters.find(v=>v.filterType===n)||{};F[s.symbol]={tick:+f('PRICE_FILTER').tickSize,step:+f('LOT_SIZE').stepSize,min:+f('LOT_SIZE').minQty,notl:+(f('MIN_NOTIONAL').notional||5)}}}
-const cancelAll=s=>Promise.all([api('DELETE','/fapi/v1/allOpenOrders',{symbol:s},1),api('DELETE','/fapi/v1/algoOpenOrders',{symbol:s},1)].map(p=>p.catch(()=>{})));
-const stopP=(s,d,p)=>({algoType:'CONDITIONAL',symbol:s,side:d>0?'SELL':'BUY',type:'STOP_MARKET',triggerPrice:rp(p,s),closePosition:'true',workingType:'MARK_PRICE'});
-const tpP=(s,d,p,q)=>({symbol:s,side:d>0?'SELL':'BUY',type:'LIMIT',timeInForce:'GTC',price:rp(p,s),quantity:fx(q,F[s].step),reduceOnly:'true'});
-async function flat(s,amt,d){await cancelAll(s);await api('POST','/fapi/v1/order',{symbol:s,side:d>0?'SELL':'BUY',type:'MARKET',quantity:fx(amt,F[s].step),reduceOnly:'true'},1)}
-async function settle(s){const o=cfg.open[s];await cancelAll(s);let R=0;
- try{const tr=await api('GET','/fapi/v1/userTrades',{symbol:s,startTime:o.t-5000,limit:100},1);R=tr.reduce((a,x)=>a+ +x.realizedPnl-+x.commission,0)/o.rUSD}catch(e){}
- cfg.jr.push({m:o.l,k:o.k,R:+R.toFixed(2),t:Date.now()});cfg.jr=cfg.jr.slice(-300);
- cfg.cool[s]=o.up?0:Date.now()+(o.k==='J'?cfg.jCool*1000:(o.k==='S'?30:15)*60000);
- if(o.k==='S'){const sc=cfg.jr.filter(x=>x.k==='S');let n=0;for(let i=sc.length-1;i>=0&&sc[i].R<0;i--)n++;if(n>=3){cfg.pauseS=Date.now()+3600000;log('3 scalp losses in a row: scalping paused 1 hour')}
-  const mm=sc.filter(x=>x.m===o.l).slice(-8);if(mm.length>=8&&mm.reduce((a,x)=>a+x.R,0)<0){cfg.cool[s]=Date.now()+12*3600000;log(o.l+' benched 12h: last 8 scalps lost money')}}
- delete cfg.open[s];save();log('Closed '+o.l+' '+(o.k==='A'?'A+':o.k==='J'?'jitter':'scalp')+' '+sg(R)+'R')}
-async function moveStop(s,o,amt){try{await api('DELETE','/fapi/v1/algoOpenOrders',{symbol:s},1).catch(()=>{});await api('POST','/fapi/v1/algoOrder',stopP(s,o.d,o.e+o.d*0.1*o.risk),1);o.st=1;save();log('Stop moved to breakeven '+o.l)}
- catch(e){await flat(s,amt,o.d).catch(()=>{});log('Stop move failed, position closed: '+e.message)}}
-async function enter(m,r,k){const s=SYM[m.l],f=F[s],d=r.lean==='bull'?1:-1,side=d>0?'BUY':'SELL';
- const px=+(await api('GET','/fapi/v1/ticker/price',{symbol:s})).price;let risk=Math.abs(r.p-r.stop);
- if(k==='S')risk=Math.max(0.6*r.a,Math.min(risk,1.2*r.a));if(!(risk>0))return 'no stop distance';
- const t1=k==='A'?1:cfg.tpS,fee=0.0007*px/risk;if(fee>cfg.maxFee/100*t1)return 'fees '+fee.toFixed(2)+'R too high';
- const rk=Math.min(k==='A'?cfg.riskA:cfg.riskS,cfg.mode==='live'?(k==='A'?0.5:0.25):99);
- let q=fl(Math.min(eq*rk/100/risk,eq*cfg.lev*0.8/px),f.step);if(q<f.min||q*px<f.notl)return 'size under exchange minimum';
- if(!lv[s]){await api('POST','/fapi/v1/leverage',{symbol:s,leverage:cfg.lev},1).catch(()=>{});lv[s]=1}
- const od=await api('POST','/fapi/v1/order',{symbol:s,side,type:'MARKET',quantity:fx(q,f.step),newOrderRespType:'RESULT'},1),e=+od.avgPrice||px;
- let q1=k==='A'?fl(q/2,f.step):q;if(k==='A'&&q1<f.min)q1=0;const q2=k==='A'?q-q1:0,sl=e-d*risk,tp1=e+d*t1*risk,tp2=e+d*2*risk;
- try{await api('POST','/fapi/v1/algoOrder',stopP(s,d,sl),1);if(q1>0)await api('POST','/fapi/v1/order',tpP(s,d,tp1,q1),1);if(q2>0)await api('POST','/fapi/v1/order',tpP(s,d,tp2,q2),1)}
- catch(x){await flat(s,q,d).catch(()=>{});return 'protection failed, closed: '+x.message}
- cfg.open[s]={l:m.l,k,t:Date.now(),d,e,risk,q,st:0,rUSD:eq*rk/100};save();
- log((k==='A'?'A+ ':'Scalp ')+side+' '+m.l+' @'+pf(e)+' SL '+rp(sl,s)+' TP1 '+rp(tp1,s)+(q2>0?' TP2 '+rp(tp2,s):''));return 'ENTERED '+(k==='A'?'A+':'scalp')}
+async function flat(s,qty,side){await api('DELETE','/fapi/v1/algoOpenOrders',{symbol:s},1).catch(()=>{});if(qty)await api('POST','/fapi/v1/order',{symbol:s,side,type:'MARKET',quantity:qty,reduceOnly:'true'},1)}
+async function trade(s,z,eq){const f=F[s],side=z.d>0?'BUY':'SELL',opp=z.d>0?'SELL':'BUY',lim=cfg.mode==='live'?{A:Math.min(cfg.riskA,0.5),S:Math.min(cfg.riskS,0.25)}:{A:cfg.riskA,S:cfg.riskS};
+ let qty=Math.min(eq*lim[z.kind]/100/z.risk,eq*cfg.lev*0.8/z.entry);qty=+fx(Math.floor(qty/f.step+1e-9)*f.step,f.step);
+ if(qty<f.min||qty*z.entry<f.notl){log('Skip '+s+': size below the exchange minimum');return}
+ if(!lev[s]){await api('POST','/fapi/v1/leverage',{symbol:s,leverage:cfg.lev},1).catch(()=>{});lev[s]=1}
+ await api('POST','/fapi/v1/order',{symbol:s,side,type:'MARKET',quantity:qty},1);cfg.open[s]={t:Date.now(),k:z.kind};save();
+ try{const g=t=>({algoType:'CONDITIONAL',symbol:s,side:opp,type:t[0],triggerPrice:rp(t[1],s),closePosition:'true',workingType:'MARK_PRICE'});
+  await api('POST','/fapi/v1/algoOrder',g(['STOP_MARKET',z.sl]),1);await api('POST','/fapi/v1/algoOrder',g(['TAKE_PROFIT_MARKET',z.tp]),1);
+  log((z.kind=='A'?'A+ ':'Scalp ')+side+' '+s+' qty '+qty+' SL '+rp(z.sl,s)+' TP '+rp(z.tp,s))}
+ catch(e){await flat(s,qty,opp).catch(x=>log('CLOSE FAILED '+s+': '+x.message));log('Stop order failed, position closed: '+e.message)}}
 async function tick(){if(!run||busy)return;busy=1;try{
- if(last&&Date.now()-last>90000)log('App was paused for '+Math.round((Date.now()-last)/60000)+' min (no checks while away)');last=Date.now();
- const ac=await api('GET','/fapi/v2/account',{},1),pos={};eq=+ac.totalWalletBalance+ +ac.totalUnrealizedProfit;ac.positions.filter(p=>+p.positionAmt).forEach(p=>pos[p.symbol]=p);
- (await api('GET','/fapi/v1/ticker/price')).forEach(x=>PX[x.symbol]=+x.price);
- const day=new Date().toISOString().slice(0,10);if(cfg.day!==day||!cfg.d0){cfg.day=day;cfg.d0=eq;save()}
- const lim=cfg.mode==='live'?Math.min(cfg.dayLoss,1):cfg.dayLoss;halt=eq<=0?'No USDT in the futures wallet':eq<=cfg.d0*(1-lim/100)?'Daily loss limit hit: no new trades':'';
- for(const s of Object.keys(cfg.open)){const o=cfg.open[s],p=pos[s];if(o.k==='J')continue;if(!p){await settle(s);continue}
-  const amt=Math.abs(+p.positionAmt),mv=(PX[s]-o.e)*o.d/o.risk;
-  if(o.k==='S'&&Date.now()-o.t>cfg.tmS*60000){await flat(s,amt,o.d);log('Scalp time exit '+o.l);continue}
-  if(!o.st&&(o.k==='S'?mv>=cfg.beS:amt<o.q*0.75))await moveStop(s,o,amt)}
- let n=Object.values(cfg.open).filter(z=>z.k!=='J').length;rows={};
- for(const m of MARKETS){const s=SYM[m.l];if(!s||!F[s])continue;const r=scan[m.l],o=cfg.open[s];let w='';
-  if(!r||r.err)w='no data';else if(r.closed)w='market closed';else if(r.lean==='wait')w='no alert';else if(Math.abs(r.s)<cfg.minScore)w='alert too weak';else if(r.stop==null)w='no stop level';else if(r.age>1800)w='stale data';
-  if(!w){const k=r.aplus?'A':'S',d=r.lean==='bull'?1:-1;
-   if(o){if(o.k==='S'&&k==='A'&&cfg.aOn&&cfg.auto&&!halt&&o.d===d&&pos[s]){o.up=1;save();await flat(s,Math.abs(+pos[s].positionAmt),o.d);log('A+ arrived: closing scalp on '+m.l);w='upgrading to A+'}else w='in trade ('+(o.k==='A'?'A+':'scalp')+')'}
-   else if(k==='A'&&!cfg.aOn)w='A+ trading off';else if(k==='S'&&!cfg.sOn)w='scalping off';else if(!cfg.auto)w='signals only';else if(halt)w=halt;
-   else if(cfg.cool[s]>Date.now())w='cooling down';else if(k==='S'&&cfg.pauseS>Date.now())w='scalps paused';else if(n>=cfg.maxOpen)w='max open trades';
-   else{w=await enter(m,r,k).catch(e=>'order failed: '+e.message);agr(s,m.l,w);if(w.startsWith('ENTERED'))n++;else log(m.l+': '+w)}}
-  rows[m.l]={r,w}}
- }catch(e){log(e.message)}busy=0;draw()}
-/*JITTER-BEGIN*/
-function flipsOf(a){let n=0,p=0;for(let i=1;i<a.length;i++){const d=a[i]-a[i-1];if(!d)continue;if(p&&(d>0)!==(p>0))n++;p=d}return n}
-function jStep(st,c,bid,ask,ko){
-  const mid=(bid+ask)/2;st.m.push(mid);while(st.m.length>c.jWin)st.m.shift();
-  if(st.m.length<c.jWin)return{go:0,w:'warming up '+st.m.length+'/'+c.jWin};
-  if((ask-bid)/mid*100>c.jSp)return{go:0,w:'spread too wide'};
-  if(ko&&mid>=ko)return{go:0,w:'candle is up: waiting for a bearish one'};
-  const nf=flipsOf(st.m);if(nf<c.jFlips)return{go:0,w:'calm: '+nf+'/'+c.jFlips+' flips'};
-  const avg=st.m.reduce((a,b)=>a+b,0)/st.m.length,dip=(avg-mid)/avg*100;
-  if(dip<c.jDip)return{go:0,w:'jittery ('+nf+' flips), dip '+dip.toFixed(3)+'% of '+c.jDip+'%'};
-  return{go:1,w:'dip '+dip.toFixed(3)+'%, '+nf+' flips'};
-}
-/*JITTER-END*/
-const J={};let jbusy=0;
-async function jenter(m,s,ask){const f=F[s],q=fl(cfg.jUsd/ask,f.step);
- if(q<f.min||q*ask<f.notl)return 'size under exchange minimum';
- if(!lv[s]){await api('POST','/fapi/v1/leverage',{symbol:s,leverage:cfg.lev},1).catch(()=>{});lv[s]=1}
- const od=await api('POST','/fapi/v1/order',{symbol:s,side:'BUY',type:'MARKET',quantity:fx(q,f.step),newOrderRespType:'RESULT'},1),e=+od.avgPrice||ask,
-  sl=e*(1-cfg.jSl/100),tp=e*(1+cfg.jTp/100);
- try{await api('POST','/fapi/v1/algoOrder',stopP(s,1,sl),1);await api('POST','/fapi/v1/order',tpP(s,1,tp,q),1)}
- catch(x){await flat(s,q,1).catch(()=>{});return 'protection failed, closed: '+x.message}
- cfg.open[s]={l:m.l,k:'J',t:Date.now(),d:1,e,risk:e*cfg.jSl/100,q,st:1,rUSD:q*e*cfg.jSl/100};save();
- log('Jitter BUY '+m.l+' @'+pf(e)+' TP '+rp(tp,s)+' SL '+rp(sl,s));return 'ENTERED jitter'}
-async function jtick(){if(!run||jbusy||!cfg.jOn)return;jbusy=1;
- try{const now=Date.now(),syms={};MARKETS.forEach(m=>{const s=SYM[m.l];if(s&&F[s])syms[s]=m});
-  const bt=await api('GET','/fapi/v1/ticker/bookTicker');
-  for(const x of bt){const m=syms[x.symbol];if(!m)continue;const s=x.symbol,bid=+x.bidPrice,ask=+x.askPrice;if(!(bid>0&&ask>0))continue;
-   const st=J[s]||(J[s]={m:[],ko:0,kt:0,w:''});
-   if(now-st.kt>20000){st.kt=now;try{const k=await api('GET','/fapi/v1/klines',{symbol:s,interval:'15m',limit:1});st.ko=+k[0][1]}catch(e){}}
-   const o=cfg.open[s],r=jStep(st,cfg,bid,ask,st.ko);
-   if(o){st.w=o.k==='J'?'in trade':'in another trade';
-    if(o.k==='J'&&!o.settling){
-     if(now-o.t>cfg.jHold*60000&&!o.tx){o.tx=1;await flat(s,o.q,1).catch(()=>{});log('Jitter time exit '+o.l)}
-     if(now-o.t>3000){try{const p=await api('GET','/fapi/v2/positionRisk',{symbol:s},1);if(!p.some(z=>+z.positionAmt)){o.settling=1;await settle(s)}}catch(e){}}}
-    continue}
-   st.w=r.w;if(!r.go)continue;
-   if(!cfg.auto){st.w='signal only: '+r.w;continue}
-   if(halt){st.w=halt;continue}
-   if(cfg.cool[s]>now){st.w='cooling down';continue}
-   if(Object.values(cfg.open).filter(z=>z.k==='J').length>=cfg.jMax){st.w='max jitter trades';continue}
-   const res=await jenter(m,s,ask).catch(e=>'order failed: '+e.message);agr(s,m.l,res);st.w=res;if(!res.startsWith('ENTERED'))log(m.l+' jitter: '+res)}
- }catch(e){log('Jitter: '+e.message)}jbusy=0;jdraw()}
-function jdraw(){if(!$('bxj'))return;
- $('bxj').innerHTML='<div class="sub" style="margin-top:0">Jitter mode (price checked every 2 s)</div>'+(!cfg.jOn?'<div class="small">Jitter mode is off</div>':
-  Object.keys(J).map(s=>{const m=MARKETS.find(x=>SYM[x.l]===s),st=J[s],p=st.m.length?pf(st.m[st.m.length-1]):'-';
-   return '<div style="display:grid;grid-template-columns:1fr 1fr 2.4fr;gap:4px;padding:6px 0;border-top:1px solid #1e293b;font-size:12px"><b>'+(m?m.l:s)+'</b><span>'+p+'</span><span class="small">'+st.w+'</span></div>'}).join('')||'<div class="small">Press Start. It waits for live ticks.</div>')}
-function draw(){if(!$('bxa'))return;jdraw();const open=Object.keys(cfg.open),dl=cfg.d0?Math.max(0,Math.min(100,(cfg.d0-eq)/(cfg.d0*cfg.dayLoss/100)*100)):0;
- $('bxs').innerHTML='<div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:16px">TradeBrain Bot</b><span style="padding:4px 10px;border-radius:12px;font-weight:700;font-size:12px;background:'+(run?(cfg.auto?'#15803d':'#a16207'):'#334155')+'">'+(run?(cfg.auto?'AUTO-TRADING':'SIGNALS ONLY'):'STOPPED')+'</span></div><div class="small">'+(last?'Last check '+new Date(last).toLocaleTimeString()+' · ':'')+(cfg.mode==='live'?'<b style="color:#ef4444">LIVE · REAL MONEY</b>':'DEMO · fake money')+'</div>'
-  +'<div style="display:flex;gap:18px;margin:8px 0"><div><div class="small">Equity</div><b style="font-size:18px">'+eq.toFixed(2)+'</b></div><div><div class="small">Today</div><b style="font-size:18px;color:'+(eq>=cfg.d0?'#22c55e':'#ef4444')+'">'+sg(eq-cfg.d0)+'</b></div></div>'
-  +'<div class="small">Daily loss used '+dl.toFixed(0)+'% of the limit</div><div style="height:6px;border-radius:3px;background:#1e293b"><div style="height:6px;border-radius:3px;width:'+dl+'%;background:'+(dl>70?'#ef4444':'#38bdf8')+'"></div></div>'+(halt?'<div style="color:#fbbf24;margin-top:6px">'+halt+'</div>':'');
- const T=(a,b,c,d)=>'<div style="display:grid;grid-template-columns:1.1fr 1fr 1.2fr 1.6fr;gap:4px;padding:6px 0;border-top:1px solid #1e293b;font-size:12px"><b>'+a+'</b><span>'+b+'</span><span>'+c+'</span><span class="small">'+d+'</span></div>';
- $('bxa').innerHTML=MARKETS.filter(m=>SYM[m.l]).map(m=>{const x=rows[m.l],r=x&&x.r;if(!r||r.err)return T(m.l,'-','-',x?x.w:'waiting for scan');const c=r.lean==='bull'?'#22c55e':r.lean==='bear'?'#ef4444':'#94a3b8';
-  return T(m.l,pf(r.p),'<b style="color:'+c+'">'+(r.lean==='wait'?'wait':(r.aplus?'A+ ':'')+(r.lean==='bull'?'BUY':'SELL')+(r.aplus?'':' watch'))+'</b> '+sg(r.s),x.w)}).join('')||'<div class="small">Press Start</div>';
- $('bxp').innerHTML=open.map(s=>{const o=cfg.open[s],mv=PX[s]?(PX[s]-o.e)*o.d/o.risk:0;return T(o.l,(o.d>0?'BUY ':'SELL ')+(o.k==='A'?'A+':o.k==='J'?'jitter':'scalp'),'<b style="color:'+(mv>=0?'#22c55e':'#ef4444')+'">'+sg(mv)+'R</b>','in '+pf(o.e)+(o.st?' · stop at entry':''))}).join('')||'<div class="small">No open bot trades</div>';
- const st=k=>{const a=cfg.jr.filter(x=>x.k===k),n=a.length,s=a.reduce((p,x)=>p+x.R,0);return n?n+' trades · '+Math.round(100*a.filter(x=>x.R>0).length/n)+'% win · avg '+sg(s/n)+'R · total '+sg(s)+'R':'no trades yet'};
- $('bxr').innerHTML='<div><b>Scalps</b><div class="small">'+st('S')+'</div></div><div style="margin-top:6px"><b>A+ setups</b><div class="small">'+st('A')+'</div></div><div style="margin-top:6px"><b>Jitter</b><div class="small">'+st('J')+'</div></div><div class="small" style="margin-top:6px">Last: '+(cfg.jr.slice(-8).reverse().map(x=>'<span style="color:'+(x.R>=0?'#22c55e':'#ef4444')+'">'+x.m+' '+sg(x.R)+'</span>').join(' · ')||'none')+'</div><div class="small">Results include fees. Judge the scalper after 50+ trades.</div>'}
-function build(){const G=[['riskS','Scalp risk % per trade'],['tpS','Scalp target (R)'],['beS','Scalp: stop to entry at (R)'],['tmS','Scalp time exit (min)'],['riskA','A+ risk % per trade'],['maxOpen','Max open trades'],['lev','Leverage'],['dayLoss','Daily loss stop %'],['minScore','Min alert score'],['maxFee','Max fees (% of target)'],['jUsd','Jitter: trade size (USDT)'],['jDip','Jitter: buy when dip is (%)'],['jTp','Jitter: take profit (%)'],['jSl','Jitter: wide stop (%)'],['jFlips','Jitter: min up/down flips'],['jWin','Jitter: ticks in window (2 s each)'],['jHold','Jitter: max hold (min)'],['jCool','Jitter: pause after trade (sec)'],['jMax','Jitter: max open trades'],['jSp','Jitter: skip if spread is wider than (%)']];
- $('bxc').innerHTML='<div class="sub" style="margin-top:0">Connection and settings</div><select id="bx_mode"><option value="demo">DEMO (Binance demo futures)</option><option value="live">LIVE (real money)</option></select><input id="bx_key" placeholder="API key" autocomplete="off"><input id="bx_sec" type="password" placeholder="API secret" autocomplete="off"><input id="bx_ph" placeholder="LIVE only: type REAL MONEY" style="display:none">'
-  +'<label class="small"><input id="bx_auto" type="checkbox" style="width:auto"> Auto-trade (off = signals only)</label><br><label class="small"><input id="bx_son" type="checkbox" style="width:auto"> Scalp every buy/sell alert</label><br><label class="small"><input id="bx_aon" type="checkbox" style="width:auto"> Trade A+ setups (stop, TP1, TP2 as shown)</label><br><label class="small"><input id="bx_jon" type="checkbox" style="width:auto"> Jitter mode: buy dips inside a bearish candle, sell the bounce</label>'
-  +G.map(g=>'<div class="small">'+g[1]+'</div><input id="bx_'+g[0]+'" type="number" step="0.05" value="'+cfg[g[0]]+'">').join('')+'<button class="gb" id="bx_go">Save and start</button><button id="bx_stop">Stop</button><button class="rb" id="bx_kill">KILL: close everything</button><div class="small">Key: trading on, withdrawals off. Keep the app open.</div>';
- const m=$('bx_mode');m.value=cfg.mode;$('bx_key').value=cfg.key;$('bx_sec').value=cfg.sec;$('bx_auto').checked=!!cfg.auto;$('bx_son').checked=!!cfg.sOn;$('bx_aon').checked=!!cfg.aOn;$('bx_jon').checked=!!cfg.jOn;
- const sh=()=>$('bx_ph').style.display=m.value==='live'?'block':'none';m.onchange=sh;sh();
- $('bx_go').onclick=async()=>{cfg.mode=m.value;cfg.key=$('bx_key').value.trim();cfg.sec=$('bx_sec').value.trim();cfg.auto=$('bx_auto').checked?1:0;cfg.sOn=$('bx_son').checked?1:0;cfg.aOn=$('bx_aon').checked?1:0;cfg.jOn=$('bx_jon').checked?1:0;G.forEach(g=>{const v=+$('bx_'+g[0]).value;if(v>0)cfg[g[0]]=v});save();
-  if(cfg.mode==='live'&&$('bx_ph').value.trim()!=='REAL MONEY'){log('LIVE not armed: type REAL MONEY');return}
-  try{const t=await api('GET','/fapi/v1/time');off=t.serverTime-Date.now();await info();await api('GET','/fapi/v2/account',{},1);run=1;log('Started in '+cfg.mode.toUpperCase());bgOn();tick();try{navigator.wakeLock&&navigator.wakeLock.request('screen')}catch(e){}}catch(e){log('Could not connect: '+e.message)}draw()};
- $('bx_stop').onclick=()=>{run=0;bgOff();log('Stopped. Open trades keep their stop and targets.');draw()};
- $('bx_kill').onclick=async()=>{run=0;bgOff();try{const ac=await api('GET','/fapi/v2/account',{},1);for(const p of ac.positions.filter(p=>+p.positionAmt))await flat(p.symbol,Math.abs(+p.positionAmt),+p.positionAmt>0?1:-1);for(const s of Object.keys(F))if(cfg.open[s])await cancelAll(s);cfg.open={};save();log('KILL: all closed, bot stopped')}catch(e){log('KILL failed: '+e.message+'. Close positions in Binance now.')}draw()}}
-build();draw();setInterval(tick,15000);setInterval(jtick,2000);setInterval(draw,5000);
-if(typeof module!=='undefined')module.exports={tick,jtick,jStep,flipsOf,J,cfg,enter,settle,F,api,PX,_set:o=>{if('eq' in o)eq=o.eq;if('run' in o)run=o.run;if('off' in o)off=o.off},rows:()=>rows};
-})();
-</script>
+  const ac=await api('GET','/fapi/v2/account',{},1),eq=+ac.totalWalletBalance+ +ac.totalUnrealizedProfit,pos=ac.positions.filter(p=>+p.positionAmt),day=new Date().toISOString().slice(0,10);
+  if(cfg.day!==day){cfg.day=day;cfg.d0=eq;save()}
+  const lim=cfg.mode==='live'?Math.min(cfg.dayLoss,1):cfg.dayLoss;halt=eq<=cfg.d0*(1-lim/100);
+  $('bx_acc').textContent=(cfg.mode==='live'?'LIVE':'DEMO')+'  equity '+eq.toFixed(2)+' USDT  today '+(eq-cfg.d0).toFixed(2)+'\nopen: '+(pos.map(p=>p.symbol+' '+p.positionAmt).join(', ')||'none')+(halt?'\nDAILY LOSS LIMIT HIT: no new trades':'');
+  for(const s of Object.keys(cfg.open)){const p=pos.find(x=>x.symbol===s);if(!p){await flat(s).catch(()=>{});delete cfg.open[s];save()}
+   else if(cfg.open[s].k==='S'&&Date.now()-cfg.open[s].t>120*60000){await flat(s,Math.abs(+p.positionAmt),+p.positionAmt>0?'SELL':'BUY').catch(e=>log(e.message));log('Scalp time exit '+s)}}
+  for(const s of SYMS){if(!F[s])continue;const a=await kl(s,'15m',300);if(a.length<210||a[a.length-1].t===seen[s])continue;seen[s]=a[a.length-1].t;
+   const[b,c]=await Promise.all([kl(s,'1h',300),kl(s,'4h',300)]),z=sig(a,b,c);ui[s]=z?(z.kind=='A'?'A+ ':'Scalp ')+(z.d>0?'BUY':'SELL'):'no setup';
+   if(z&&cfg.auto&&!halt&&!pos.some(p=>p.symbol===s)&&Object.keys(cfg.open).length<cfg.maxOpen)await trade(s,z,eq).catch(e=>log('Order failed '+s+': '+e.message))}
+  $('bx_sig').textContent=SYMS.map(s=>s.padEnd(9)+(ui[s]||'waiting for next 15m close')).join('\n')}catch(e){log(e.message)}busy=0}
+async function kill(){run=0;try{const ac=await api('GET','/fapi/v2/account',{},1);for(const p of ac.positions.filter(p=>+p.positionAmt))await flat(p.symbol,Math.abs(+p.positionAmt),+p.positionAmt>0?'SELL':'BUY');cfg.open={};save();log('KILL: everything closed, bot stopped')}catch(e){log('KILL failed: '+e.message+' - close positions in Binance now')}}
+function init(){const F2=[['riskA','A+ risk % per trade'],['riskS','Scalp risk % per trade'],['lev','Leverage'],['maxOpen','Max open trades'],['dayLoss','Daily loss stop %']];
+ $('bx_set').innerHTML=F2.map(f=>'<div class="s">'+f[1]+'</div><input id="bx_f_'+f[0]+'" type="number" step="0.05" value="'+cfg[f[0]]+'">').join('');
+ $('bx_mode').value=cfg.mode;$('bx_key').value=cfg.key;$('bx_sec').value=cfg.sec;$('bx_auto').checked=cfg.auto;
+ const sh=()=>$('bx_phrase').style.display=$('bx_mode').value==='live'?'block':'none';$('bx_mode').onchange=sh;sh();
+ $('bx_go').onclick=async()=>{cfg.mode=$('bx_mode').value;cfg.key=$('bx_key').value.trim();cfg.sec=$('bx_sec').value.trim();cfg.auto=$('bx_auto').checked;F2.forEach(f=>cfg[f[0]]=+$('bx_f_'+f[0]).value||cfg[f[0]]);save();
+  if(cfg.mode==='live'&&$('bx_phrase').value.trim()!=='REAL MONEY'){log('LIVE not armed: type REAL MONEY');return}
+  try{const t=await api('GET','/fapi/v1/time');off=t.serverTime-Date.now();await info();await api('GET','/fapi/v2/account',{},1);run=1;log('Started in '+cfg.mode.toUpperCase()+' mode');tick();
+   try{navigator.wakeLock&&navigator.wakeLock.request('screen')}catch(e){}}catch(e){log('Could not connect: '+e.message)}};
+ $('bx_stop').onclick=()=>{run=0;log('Stopped (open trades keep their stop and target)')};$('bx_kill').onclick=kill;$('bx_btb').onclick=bt;setInterval(tick,20000)}
+if(typeof document!=='undefined'&&document.body)init();
+})();</script>
 </body>
 </html>

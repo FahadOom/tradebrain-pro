@@ -2,7 +2,7 @@ name: Android APK
 on:
   workflow_dispatch:
   push:
-    branches: [pro]
+    branches: [main]
 permissions:
   contents: write
 jobs:
@@ -20,22 +20,8 @@ jobs:
       - run: npm install
       - run: cp node_modules/lightweight-charts/dist/lightweight-charts.standalone.production.js www/lightweight-charts.js
       - run: npx cap add android
-      - name: Pick a background plugin version that matches Capacitor 6
-        run: |
-          node -e 'const {execSync}=require("child_process");const sv=require(execSync("npm root -g").toString().trim()+"/npm/node_modules/semver");const n="@anuradev/capacitor-background-mode";const vs=JSON.parse(execSync("npm view "+n+" versions --json").toString());for(const v of vs.reverse()){try{const p=JSON.parse(execSync("npm view "+n+"@"+v+" peerDependencies --json").toString()||"{}");const r=p["@capacitor/core"];if(r&&sv.satisfies("6.2.0",r)){console.log(v);process.exit(0)}}catch(e){}}process.exit(1)' > bgver.txt || true
-          echo "plugin version: $(cat bgver.txt)"
-          if [ -s bgver.txt ]; then npm install "@anuradev/capacitor-background-mode@$(cat bgver.txt)" --legacy-peer-deps || true; fi
       - run: npx cap sync android
-      - name: Build
-        id: b1
-        continue-on-error: true
-        run: cd android && chmod +x gradlew && ./gradlew assembleDebug
-      - name: Fallback build without the background plugin
-        if: steps.b1.outcome == 'failure'
-        run: |
-          npm uninstall @anuradev/capacitor-background-mode --legacy-peer-deps || true
-          npx cap sync android
-          cd android && ./gradlew clean assembleDebug
+      - run: cd android && chmod +x gradlew && ./gradlew assembleDebug
       - uses: actions/upload-artifact@v4
         with:
           name: TradeBrain-Pro-APK
@@ -43,7 +29,6 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: android-pro-latest
-          target_commitish: ${{ github.sha }}
           name: TradeBrain Pro
           make_latest: false
           files: android/app/build/outputs/apk/debug/app-debug.apk

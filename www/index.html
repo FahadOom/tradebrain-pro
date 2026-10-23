@@ -1388,8 +1388,10 @@ const BASE=()=>cfg.mode==='live'?'https://fapi.binance.com':'https://demo-fapi.b
 const log=t=>{logs.unshift(new Date().toLocaleTimeString()+' '+t);logs.length=Math.min(logs.length,60);if($('bxl'))$('bxl').textContent=logs.join('\n')};
 const hex=b=>[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');
 async function sign(q){const e=new TextEncoder(),k=await crypto.subtle.importKey('raw',e.encode(cfg.sec),{name:'HMAC',hash:'SHA-256'},false,['sign']);return hex(await crypto.subtle.sign('HMAC',k,e.encode(q)))}
-async function api(m,p,q,sg){q=Object.assign({},q);if(sg){q.timestamp=Date.now()+off;q.recvWindow=10000}let s=new URLSearchParams(q).toString();if(sg)s+='&signature='+await sign(s);
+async function api0(m,p,q,sg){q=Object.assign({},q);if(sg){q.timestamp=Date.now()+off;q.recvWindow=10000}let s=new URLSearchParams(q).toString();if(sg)s+='&signature='+await sign(s);
  const r=await fetch(BASE()+p+'?'+s,{method:m,headers:sg?{'X-MBX-APIKEY':cfg.key}:{}}),j=await r.json();if(!r.ok)throw new Error(j.msg||r.status);return j}
+async function api(m,p,q,sg){try{return await api0(m,p,q,sg)}catch(e){if(sg&&/recvWindow/i.test(e.message)){const t=await api0('GET','/fapi/v1/time');off=t.serverTime-Date.now();return api0(m,p,q,sg)}throw e}}
+const agr=(s,l,msg)=>{if(/agreement/i.test(msg)){cfg.cool[s]=Date.now()+6*3600000;save();log(l+': sign the TradFi-Perps agreement in your Binance account. Skipping it for 6 hours.')}};
 const dec=t=>(String(t).split('.')[1]||'').length,fx=(v,t)=>(+v).toFixed(dec(t)),rp=(v,s)=>fx(Math.round(v/F[s].tick)*F[s].tick,F[s].tick),fl=(v,t)=>Math.floor(v/t+1e-9)*t;
 const pf=v=>(+v).toFixed(v>100?2:v>1?3:5),sg=v=>(v>0?'+':'')+v.toFixed(2);
 async function info(){const j=await api('GET','/fapi/v1/exchangeInfo');for(const s of j.symbols){const f=n=>s.filters.find(v=>v.filterType===n)||{};F[s.symbol]={tick:+f('PRICE_FILTER').tickSize,step:+f('LOT_SIZE').stepSize,min:+f('LOT_SIZE').minQty,notl:+(f('MIN_NOTIONAL').notional||5)}}}
@@ -1436,7 +1438,7 @@ async function tick(){if(!run||busy)return;busy=1;try{
    if(o){if(o.k==='S'&&k==='A'&&cfg.aOn&&cfg.auto&&!halt&&o.d===d&&pos[s]){o.up=1;save();await flat(s,Math.abs(+pos[s].positionAmt),o.d);log('A+ arrived: closing scalp on '+m.l);w='upgrading to A+'}else w='in trade ('+(o.k==='A'?'A+':'scalp')+')'}
    else if(k==='A'&&!cfg.aOn)w='A+ trading off';else if(k==='S'&&!cfg.sOn)w='scalping off';else if(!cfg.auto)w='signals only';else if(halt)w=halt;
    else if(cfg.cool[s]>Date.now())w='cooling down';else if(k==='S'&&cfg.pauseS>Date.now())w='scalps paused';else if(n>=cfg.maxOpen)w='max open trades';
-   else{w=await enter(m,r,k).catch(e=>'order failed: '+e.message);if(w.startsWith('ENTERED'))n++;else log(m.l+': '+w)}}
+   else{w=await enter(m,r,k).catch(e=>'order failed: '+e.message);agr(s,m.l,w);if(w.startsWith('ENTERED'))n++;else log(m.l+': '+w)}}
   rows[m.l]={r,w}}
  }catch(e){log(e.message)}busy=0;draw()}
 /*JITTER-BEGIN*/
@@ -1479,7 +1481,7 @@ async function jtick(){if(!run||jbusy||!cfg.jOn)return;jbusy=1;
    if(halt){st.w=halt;continue}
    if(cfg.cool[s]>now){st.w='cooling down';continue}
    if(Object.values(cfg.open).filter(z=>z.k==='J').length>=cfg.jMax){st.w='max jitter trades';continue}
-   const res=await jenter(m,s,ask).catch(e=>'order failed: '+e.message);st.w=res;if(!res.startsWith('ENTERED'))log(m.l+' jitter: '+res)}
+   const res=await jenter(m,s,ask).catch(e=>'order failed: '+e.message);agr(s,m.l,res);st.w=res;if(!res.startsWith('ENTERED'))log(m.l+' jitter: '+res)}
  }catch(e){log('Jitter: '+e.message)}jbusy=0;jdraw()}
 function jdraw(){if(!$('bxj'))return;
  $('bxj').innerHTML='<div class="sub" style="margin-top:0">Jitter mode (price checked every 2 s)</div>'+(!cfg.jOn?'<div class="small">Jitter mode is off</div>':
